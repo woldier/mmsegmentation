@@ -309,7 +309,11 @@ class BaseDecodeHead(BaseModule, metaclass=ABCMeta):
             size=seg_label.shape[2:],
             mode='bilinear',
             align_corners=self.align_corners)
-        if self.sampler is not None:
+        # 在batch_data_samples 新增的seg_weight参数，用于满足sampler无法得到想要的权重的情况
+        # 例如我们想通过外部的不确定性，得到seg的权重，这时候sampler就无法做到，因为其只接收(seg_logits, seg_label)作为输入
+        if 'seg_weight' in batch_data_samples[0]:
+            seg_weight = torch.stack([sample.seg_weight for sample in batch_data_samples], dim=0)
+        elif self.sampler is not None:
             seg_weight = self.sampler.sample(seg_logits, seg_label)
         else:
             seg_weight = None
